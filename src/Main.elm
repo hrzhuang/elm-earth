@@ -84,7 +84,7 @@ getWindowDimensions = Task.perform gotViewport Dom.getViewport
 cubeFaceTexturePath : CubeFace -> String
 cubeFaceTexturePath face =
     let
-        prefix = "/textures/earth/"
+        prefix = "textures/earth/"
         suffix = ".jpg"
     in case face of
         Front -> prefix ++ "front" ++ suffix
