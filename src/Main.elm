@@ -376,20 +376,21 @@ cubeFaceTexture textures face = case face of
     Bottom -> textures.bottom
 
 cameraPos : Vec3
-cameraPos = vec3 2 2 2
+cameraPos = vec3 3 3 3
 
 white : Vec3
 white = vec3 1 1 1
 
 cubeFaceUniforms : LoadedModel -> CubeFace -> Uniforms
-cubeFaceUniforms { textures, rotation } face =
+cubeFaceUniforms { windowWidth, windowHeight, textures, rotation } face =
     { rotation = Mat4.makeRotate rotation Vec3.k
     , camera = Mat4.makeLookAt cameraPos (vec3 0 0 0) (vec3 -1 -1 1)
-    , perspective = Mat4.makePerspective 45 1 0.01 100
+    , perspective =
+        Mat4.makePerspective 45 (windowWidth / windowHeight) 0.01 100
     , texture = cubeFaceTexture textures face
     , lightColor = white
     , ambientBrightness = 0.1
-    , lightPos = vec3 0 2 2
+    , lightPos = vec3 0 10 10
     , cameraPos = cameraPos
     , specularBrightness = 0.5
     }
@@ -447,10 +448,11 @@ view model = case model of
     LoadedState loadedModel ->
         List.map (cubeFaceEntity loadedModel) cubeFaces
         |> WebGL.toHtml
-            [ Attrs.width 800
-            , Attrs.height 800
-            , Attrs.style "width" "400px"
-            , Attrs.style "height" "400px"
+            [ Attrs.width (round <| loadedModel.windowWidth * 2)
+            , Attrs.height (round <| loadedModel.windowHeight * 2)
+            , Attrs.style "width" "100vw"
+            , Attrs.style "height" "100vh"
             , Attrs.style "display" "block"
+            , Attrs.style "background-color" "black"
             ]
     _ -> Html.div [] []
