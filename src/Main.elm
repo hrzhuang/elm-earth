@@ -452,8 +452,8 @@ view model =
                 |> WebGL.toHtml
                     [ Attrs.width (round <| loadedModel.windowWidth * 2)
                     , Attrs.height (round <| loadedModel.windowHeight * 2)
-                    , Attrs.style "width" "100vw"
-                    , Attrs.style "height" "100vh"
+                    , Attrs.style "width" "100dvw"
+                    , Attrs.style "height" "100dvh"
                     , Attrs.style "display" "block"
                     , Attrs.style "background-color" "black"
                     ]
