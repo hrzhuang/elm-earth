@@ -4,6 +4,7 @@ import Dict
 import Task
 
 import Browser
+import Browser.Dom as Dom
 import Browser.Events as Events
 import Html exposing (Html)
 import Html.Attributes as Attrs
@@ -33,10 +34,16 @@ type alias Textures =
     , bottom : Texture
     }
 
-type alias LoadingModel = { textures : TexturesLoading }
+type alias LoadingModel =
+    { windowWidth : Maybe Float
+    , windowHeight : Maybe Float
+    , textures : TexturesLoading
+    }
 
 type alias LoadedModel =
-    { textures : Textures
+    { windowWidth : Float
+    , windowHeight : Float
+    , textures : Textures
     , rotation : Float -- in radians
     }
 
@@ -51,7 +58,8 @@ cubeFaces : List CubeFace
 cubeFaces = [Front, Back, Right, Left, Top, Bottom]
 
 type Msg
-    = LoadTextureResult CubeFace (Result Texture.Error Texture)
+    = GotWindowDimensions Float Float
+    | LoadTextureResult CubeFace (Result Texture.Error Texture)
     | AnimationFrame Float -- time delta since last frame in milliseconds
 
 main : Program Flags Model Msg
@@ -66,6 +74,12 @@ main = Browser.element
  - init
  - ---
  -}
+
+gotViewport : Dom.Viewport -> Msg
+gotViewport { viewport } = GotWindowDimensions viewport.width viewport.height
+
+getWindowDimensions : Cmd Msg
+getWindowDimensions = Task.perform gotViewport Dom.getViewport
 
 cubeFaceTexturePath : CubeFace -> String
 cubeFaceTexturePath face =
@@ -94,7 +108,9 @@ init : Flags -> (Model, Cmd Msg)
 init () =
     let
         model = LoadingState
-            { textures =
+            { windowWidth = Nothing
+            , windowHeight = Nothing
+            , textures =
                 { front = Nothing
                 , back = Nothing
                 , right = Nothing
@@ -103,13 +119,22 @@ init () =
                 , bottom = Nothing
                 }
             }
-        cmd = Cmd.batch <| List.map loadCubeFaceTexture cubeFaces
+        cmd = Cmd.batch <|
+            getWindowDimensions :: List.map loadCubeFaceTexture cubeFaces
     in (model, cmd)
 
 {- ---
  - update
  - ---
  -}
+
+setWindowDimensionsLoading : Float -> Float -> LoadingModel -> LoadingModel
+setWindowDimensionsLoading width height loadingModel =
+    { loadingModel | windowWidth = Just width, windowHeight = Just height }
+
+setWindowDimensionsLoaded : Float -> Float -> LoadedModel -> LoadedModel
+setWindowDimensionsLoaded width height loadedModel =
+    { loadedModel | windowWidth = width , windowHeight = height }
 
 setCubeFaceTexture : CubeFace -> Texture -> LoadingModel -> LoadingModel
 setCubeFaceTexture face texture loadingModel =
@@ -123,21 +148,30 @@ setCubeFaceTexture face texture loadingModel =
             Bottom -> { textures | bottom = Just texture }
     in { loadingModel | textures = updateTextures loadingModel.textures }
 
-tryFinishLoading : LoadingModel -> Model
-tryFinishLoading loadingModel =
+tryFinishLoadingTextures : TexturesLoading -> Maybe Textures
+tryFinishLoadingTextures loading =
     -- need nested tuples because elm does not support tuples with more than
     -- 3 elements
-    case ((loadingModel.textures.front, loadingModel.textures.back),
-            (loadingModel.textures.right, loadingModel.textures.left),
-            (loadingModel.textures.top, loadingModel.textures.bottom)) of
+    case ((loading.front, loading.back), (loading.right, loading.left),
+            (loading.top, loading.bottom)) of
         ((Just front, Just back), (Just right, Just left),
                 (Just top, Just bottom)) ->
+            Just
+                { front = front, back = back
+                , right = right, left = left
+                , top = top, bottom = bottom
+                }
+        _ -> Nothing
+
+tryFinishLoading : LoadingModel -> Model
+tryFinishLoading loadingModel =
+    case (loadingModel.windowWidth, loadingModel.windowHeight,
+            tryFinishLoadingTextures loadingModel.textures) of
+        (Just windowWidth, Just windowHeight, Just textures) ->
             LoadedState
-                { textures =
-                    { front = front, back = back
-                    , right = right, left = left
-                    , top = top, bottom = bottom
-                    }
+                { windowWidth = windowWidth
+                , windowHeight = windowHeight
+                , textures = textures
                 , rotation = 0
                 }
         _ -> LoadingState loadingModel
@@ -163,6 +197,11 @@ updateRotation delta loadedModel =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = case model of
     LoadingState loadingModel -> case msg of
+        GotWindowDimensions width height ->
+            ( setWindowDimensionsLoading width height loadingModel
+                |> tryFinishLoading
+            , Cmd.none
+            )
         LoadTextureResult face result -> case result of
             Ok texture ->
                 ( setCubeFaceTexture face texture loadingModel
@@ -172,6 +211,10 @@ update msg model = case model of
             Err _ -> (ErrorState, Cmd.none)
         AnimationFrame _ -> (ErrorState, Cmd.none)
     LoadedState loadedModel -> case msg of
+        GotWindowDimensions width height ->
+            ( LoadedState (setWindowDimensionsLoaded width height loadedModel)
+            , Cmd.none
+            )
         LoadTextureResult _ _ -> (ErrorState, Cmd.none)
         AnimationFrame delta ->
             ( LoadedState (updateRotation delta loadedModel)
@@ -184,10 +227,17 @@ update msg model = case model of
  - ---
  -}
 
+windowResized : Int -> Int -> Msg
+windowResized newWidth newHeight =
+    GotWindowDimensions (toFloat newWidth) (toFloat newHeight)
+
 subscriptions : Model -> Sub Msg
 subscriptions model = case model of
-    LoadingState _ -> Sub.none
-    LoadedState _ -> Events.onAnimationFrameDelta AnimationFrame
+    LoadingState _ -> Events.onResize windowResized
+    LoadedState _ -> Sub.batch
+        [ Events.onAnimationFrameDelta AnimationFrame
+        , Events.onResize windowResized
+        ]
     ErrorState -> Sub.none
 
 {- ---
