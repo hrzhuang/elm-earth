@@ -21,16 +21,12 @@ jobs:
         uses: hrzhuang/install-elm@v1
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Create public directory
-        run: mkdir public
-      - name: Copy textures into public
-        run: cp -r textures public
-      - name: Build Elm code
-        run: elm make --optimize --output public/index.html src/Main.elm
+      - name: Build
+        run: make
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: public
+          path: build
   deploy:
     runs-on: ubuntu-latest
     needs: build
