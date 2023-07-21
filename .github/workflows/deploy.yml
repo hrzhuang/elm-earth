@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Install Elm
         uses: hrzhuang/install-elm@v1
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Create public directory
         run: mkdir public
       - name: Copy textures into public
