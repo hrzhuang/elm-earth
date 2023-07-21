@@ -33,13 +33,15 @@ type alias Textures =
     , bottom : Texture
     }
 
+type alias LoadingModel = { textures : TexturesLoading }
+
 type alias LoadedModel =
     { textures : Textures
     , rotation : Float -- in radians
     }
 
 type Model
-    = LoadingState TexturesLoading
+    = LoadingState LoadingModel
     | LoadedState LoadedModel
     | ErrorState
 
@@ -92,12 +94,14 @@ init : Flags -> (Model, Cmd Msg)
 init () =
     let
         model = LoadingState
-            { front = Nothing
-            , back = Nothing
-            , right = Nothing
-            , left = Nothing
-            , top = Nothing
-            , bottom = Nothing
+            { textures =
+                { front = Nothing
+                , back = Nothing
+                , right = Nothing
+                , left = Nothing
+                , top = Nothing
+                , bottom = Nothing
+                }
             }
         cmd = Cmd.batch <| List.map loadCubeFaceTexture cubeFaces
     in (model, cmd)
@@ -107,21 +111,25 @@ init () =
  - ---
  -}
 
-setCubeFaceTexture : CubeFace -> Texture -> TexturesLoading -> TexturesLoading
-setCubeFaceTexture face texture textures = case face of
-    Front -> { textures | front = Just texture }
-    Back -> { textures | back = Just texture }
-    Right -> { textures | right = Just texture }
-    Left -> { textures | left = Just texture }
-    Top -> { textures | top = Just texture }
-    Bottom -> { textures | bottom = Just texture }
+setCubeFaceTexture : CubeFace -> Texture -> LoadingModel -> LoadingModel
+setCubeFaceTexture face texture loadingModel =
+    let
+        updateTextures textures = case face of
+            Front -> { textures | front = Just texture }
+            Back -> { textures | back = Just texture }
+            Right -> { textures | right = Just texture }
+            Left -> { textures | left = Just texture }
+            Top -> { textures | top = Just texture }
+            Bottom -> { textures | bottom = Just texture }
+    in { loadingModel | textures = updateTextures loadingModel.textures }
 
-tryFinishLoading : TexturesLoading -> Model
-tryFinishLoading loading =
+tryFinishLoading : LoadingModel -> Model
+tryFinishLoading loadingModel =
     -- need nested tuples because elm does not support tuples with more than
     -- 3 elements
-    case ((loading.front, loading.back), (loading.right, loading.left),
-            (loading.top, loading.bottom)) of
+    case ((loadingModel.textures.front, loadingModel.textures.back),
+            (loadingModel.textures.right, loadingModel.textures.left),
+            (loadingModel.textures.top, loadingModel.textures.bottom)) of
         ((Just front, Just back), (Just right, Just left),
                 (Just top, Just bottom)) ->
             LoadedState
@@ -132,7 +140,7 @@ tryFinishLoading loading =
                     }
                 , rotation = 0
                 }
-        _ -> LoadingState loading
+        _ -> LoadingState loadingModel
 
 -- in radians per millisecond
 rotationSpeed : Float
@@ -154,10 +162,11 @@ updateRotation delta loadedModel =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = case model of
-    LoadingState textures -> case msg of
+    LoadingState loadingModel -> case msg of
         LoadTextureResult face result -> case result of
             Ok texture ->
-                ( setCubeFaceTexture face texture textures |> tryFinishLoading
+                ( setCubeFaceTexture face texture loadingModel
+                    |> tryFinishLoading
                 , Cmd.none
                 )
             Err _ -> (ErrorState, Cmd.none)
