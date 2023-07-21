@@ -3,10 +3,10 @@ module Main exposing (main)
 import Dict
 import Task
 
-import Browser
+import Browser exposing (Document)
 import Browser.Dom as Dom
 import Browser.Events as Events
-import Html exposing (Html)
+import Html
 import Html.Attributes as Attrs
 import Math.Matrix4 as Mat4 exposing (Mat4)
 import Math.Vector3 as Vec3 exposing (Vec3, vec3)
@@ -63,7 +63,7 @@ type Msg
     | AnimationFrame Float -- time delta since last frame in milliseconds
 
 main : Program Flags Model Msg
-main = Browser.element
+main = Browser.document
     { init = init
     , update = update
     , subscriptions = subscriptions
@@ -443,16 +443,20 @@ cubeFaceEntity : LoadedModel -> CubeFace -> Entity
 cubeFaceEntity loadedModel face = WebGL.entity vertexShader fragmentShader
     (cubeFaceMesh face) (cubeFaceUniforms loadedModel face)
 
-view : Model -> Html Msg
-view model = case model of
-    LoadedState loadedModel ->
-        List.map (cubeFaceEntity loadedModel) cubeFaces
-        |> WebGL.toHtml
-            [ Attrs.width (round <| loadedModel.windowWidth * 2)
-            , Attrs.height (round <| loadedModel.windowHeight * 2)
-            , Attrs.style "width" "100vw"
-            , Attrs.style "height" "100vh"
-            , Attrs.style "display" "block"
-            , Attrs.style "background-color" "black"
-            ]
-    _ -> Html.div [] []
+view : Model -> Document Msg
+view model =
+    let
+        body = case model of
+            LoadedState loadedModel ->
+                List.map (cubeFaceEntity loadedModel) cubeFaces
+                |> WebGL.toHtml
+                    [ Attrs.width (round <| loadedModel.windowWidth * 2)
+                    , Attrs.height (round <| loadedModel.windowHeight * 2)
+                    , Attrs.style "width" "100vw"
+                    , Attrs.style "height" "100vh"
+                    , Attrs.style "display" "block"
+                    , Attrs.style "background-color" "black"
+                    ]
+                |> List.singleton
+            _ -> []
+    in { title = "Earth", body = body }
