@@ -448,15 +448,18 @@ view model =
     let
         body = case model of
             LoadedState loadedModel ->
-                List.map (cubeFaceEntity loadedModel) cubeFaces
-                |> WebGL.toHtml
-                    [ Attrs.width (round <| loadedModel.windowWidth * 2)
-                    , Attrs.height (round <| loadedModel.windowHeight * 2)
-                    , Attrs.style "width" "100dvw"
-                    , Attrs.style "height" "100dvh"
-                    , Attrs.style "display" "block"
-                    , Attrs.style "background-color" "black"
-                    ]
-                |> List.singleton
+                let
+                    width = round loadedModel.windowWidth
+                    height = round loadedModel.windowHeight
+                in List.map (cubeFaceEntity loadedModel) cubeFaces
+                    |> WebGL.toHtml
+                        [ Attrs.width (width * 2)
+                        , Attrs.height (height * 2)
+                        , Attrs.style "width" (String.fromInt width ++ "px")
+                        , Attrs.style "height" (String.fromInt height ++ "px")
+                        , Attrs.style "display" "block"
+                        , Attrs.style "background-color" "black"
+                        ]
+                    |> List.singleton
             _ -> []
     in { title = "Earth", body = body }
