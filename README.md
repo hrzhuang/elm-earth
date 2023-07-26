@@ -4,8 +4,7 @@ This is a 3D spinning earth implemented using Elm and WebGL.
 
 ## How to Run
 
-There is a hosted instance on
-[GitHub Pages](https://hrzhuang.github.io/elm-earth/).
+There is a [hosted instance](https://hrzhuang.github.io/elm-earth/).
 
 To run locally, run `make`, then run your preferred HTTP server in the `build`
 directory (e.g. `python -m http.server`).
