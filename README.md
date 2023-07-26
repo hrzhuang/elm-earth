@@ -8,7 +8,7 @@ There is a hosted instance on
 [GitHub Pages](https://hrzhuang.github.io/elm-earth/).
 
 To run locally, run `make`, then run your preferred HTTP server in the `build`
-directory (mine is `python -m http.server`).
+directory (e.g. `python -m http.server`).
 
 ## Attributions
 
