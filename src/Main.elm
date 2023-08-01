@@ -457,6 +457,5 @@ view model =
                     , Attrs.style "width" (String.fromInt width ++ "px")
                     , Attrs.style "height" (String.fromInt height ++ "px")
                     , Attrs.style "display" "block"
-                    , Attrs.style "background-color" "black"
                     ]
         _ -> Html.div [] []
