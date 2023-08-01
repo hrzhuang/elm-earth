@@ -3,10 +3,10 @@ module Main exposing (main)
 import Dict
 import Task
 
-import Browser exposing (Document)
+import Browser
 import Browser.Dom as Dom
 import Browser.Events as Events
-import Html
+import Html exposing (Html)
 import Html.Attributes as Attrs
 import Math.Matrix4 as Mat4 exposing (Mat4)
 import Math.Vector3 as Vec3 exposing (Vec3, vec3)
@@ -63,7 +63,7 @@ type Msg
     | AnimationFrame Float -- time delta since last frame in milliseconds
 
 main : Program Flags Model Msg
-main = Browser.document
+main = Browser.element
     { init = init
     , update = update
     , subscriptions = subscriptions
@@ -443,23 +443,20 @@ cubeFaceEntity : LoadedModel -> CubeFace -> Entity
 cubeFaceEntity loadedModel face = WebGL.entity vertexShader fragmentShader
     (cubeFaceMesh face) (cubeFaceUniforms loadedModel face)
 
-view : Model -> Document Msg
+view : Model -> Html Msg
 view model =
-    let
-        body = case model of
-            LoadedState loadedModel ->
-                let
-                    width = round loadedModel.windowWidth
-                    height = round loadedModel.windowHeight
-                in List.map (cubeFaceEntity loadedModel) cubeFaces
-                    |> WebGL.toHtml
-                        [ Attrs.width (width * 2)
-                        , Attrs.height (height * 2)
-                        , Attrs.style "width" (String.fromInt width ++ "px")
-                        , Attrs.style "height" (String.fromInt height ++ "px")
-                        , Attrs.style "display" "block"
-                        , Attrs.style "background-color" "black"
-                        ]
-                    |> List.singleton
-            _ -> []
-    in { title = "Earth", body = body }
+    case model of
+        LoadedState loadedModel ->
+            let
+                width = round loadedModel.windowWidth
+                height = round loadedModel.windowHeight
+            in List.map (cubeFaceEntity loadedModel) cubeFaces
+                |> WebGL.toHtml
+                    [ Attrs.width (width * 2)
+                    , Attrs.height (height * 2)
+                    , Attrs.style "width" (String.fromInt width ++ "px")
+                    , Attrs.style "height" (String.fromInt height ++ "px")
+                    , Attrs.style "display" "block"
+                    , Attrs.style "background-color" "black"
+                    ]
+        _ -> Html.div [] []
